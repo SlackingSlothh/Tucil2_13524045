@@ -38,7 +38,7 @@ func (tri Triangle3D) isOverlapAxis(axis r3.Vector, extents r3.Vector) bool {
 	return !(min > radius || max < -radius)
 }
 
-func (tri Triangle3D) isIntersecting(cube Cube) bool {
+func (tri Triangle3D) IsIntersecting(cube Cube) bool {
 	center := r3.Vector{X: (cube.v0.X + cube.v1.X) * 0.5, Y: (cube.v0.Y + cube.v1.Y) * 0.5, Z: (cube.v0.Z + cube.v1.Z) * 0.5}
 	extents := r3.Vector{X: (cube.v1.X-cube.v0.X)*0.5, Y: (cube.v1.Y-cube.v0.Y)*0.5, Z: (cube.v1.Z-cube.v0.Z)*0.5}.Abs()
 
