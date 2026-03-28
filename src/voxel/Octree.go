@@ -1,6 +1,10 @@
 package voxel
 
-import "github.com/SlackingSlothh/OctreeVoxelization/src/geometry"
+import (
+	"sync"
+
+	"github.com/SlackingSlothh/OctreeVoxelization/src/geometry"
+)
 
 type OctreeNode struct {
 	Boundary geometry.Cube
@@ -77,12 +81,87 @@ func (node *OctreeNode) constructHelper(currentDepth int, stats *ConstructStats,
 			node.Children = append(node.Children, childNode)
 			continue
 		}
+	}
+	var wg sync.WaitGroup
+	results := make(chan struct {
+		node      OctreeNode
+		depth     int
+		nodes     []int
+		leaves    []int
+	}, len(dividedCube))
 
-		childDepth := childNode.constructHelper(currentDepth+1, stats, maxDepth, minEdge)
-		if childDepth > maxDepthReached {
-			maxDepthReached = childDepth
+	for _, childCube := range dividedCube {
+		wg.Add(1)
+		go func(childCube geometry.Cube) {
+			defer wg.Done()
+			childNode := OctreeNode{Boundary: childCube}
+			for _, triangle := range node.Triangles {
+				if triangle.IsIntersecting(childCube) {
+					childNode.Triangles = append(childNode.Triangles, triangle)
+				}
+			}
+
+			if len(childNode.Triangles) == 0 {
+				childNode.Children = nil
+				localNodes := []int{}
+				localLeaves := []int{}
+				if len(stats.NodesPerLevel) <= currentDepth+1 {
+					localNodes = make([]int, currentDepth+2)
+				} else {
+					localNodes = make([]int, currentDepth+2)
+				}
+				if len(stats.LeavesPerLevel) <= currentDepth+1 {
+					localLeaves = make([]int, currentDepth+2)
+				} else {
+					localLeaves = make([]int, currentDepth+2)
+				}
+				localNodes[currentDepth+1] = 1
+				localLeaves[currentDepth+1] = 1
+				results <- struct {
+					node   OctreeNode
+					depth  int
+					nodes  []int
+					leaves []int
+				}{childNode, currentDepth + 1, localNodes, localLeaves}
+				return
+			}
+
+			childNodes := &ConstructStats{}
+			childDepth := childNode.constructHelper(currentDepth+1, childNodes, maxDepth, minEdge)
+			results <- struct {
+				node   OctreeNode
+				depth  int
+				nodes  []int
+				leaves []int
+			}{childNode, childDepth, childNodes.NodesPerLevel, childNodes.LeavesPerLevel}
+		}(childCube)
+	}
+
+	wg.Wait()
+	close(results)
+
+	for res := range results {
+		if len(stats.NodesPerLevel) < len(res.nodes) {
+			newNodes := make([]int, len(res.nodes))
+			copy(newNodes, stats.NodesPerLevel)
+			stats.NodesPerLevel = newNodes
 		}
-		node.Children = append(node.Children, childNode)
+		if len(stats.LeavesPerLevel) < len(res.leaves) {
+			newLeaves := make([]int, len(res.leaves))
+			copy(newLeaves, stats.LeavesPerLevel)
+			stats.LeavesPerLevel = newLeaves
+		}
+		for i, v := range res.nodes {
+			stats.NodesPerLevel[i] += v
+		}
+		for i, v := range res.leaves {
+			stats.LeavesPerLevel[i] += v
+		}
+
+		node.Children = append(node.Children, res.node)
+		if res.depth > maxDepthReached {
+			maxDepthReached = res.depth
+		}
 	}
 
 	if len(node.Children) == 0 {
