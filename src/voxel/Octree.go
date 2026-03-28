@@ -16,13 +16,21 @@ type ConstructStats struct {
 	LeavesPerLevel []int
 }
 
-func (node *OctreeNode) Construct() (int, []int, []int) {
+func (node *OctreeNode) Construct(maxDepth int, minEdge float64) (int, []int, []int) {
 	stats := &ConstructStats{}
-	maxDepth := node.constructHelper(0, stats)
-	return maxDepth, stats.NodesPerLevel, stats.LeavesPerLevel
+	actualMaxDepth := maxDepth
+	if actualMaxDepth < 0 {
+		actualMaxDepth = 99999
+	}
+	actualMinEdge := minEdge
+	if actualMinEdge <= 0 {
+		actualMinEdge = 0.0
+	}
+	maxDepthReached := node.constructHelper(0, stats, actualMaxDepth, actualMinEdge)
+	return maxDepthReached, stats.NodesPerLevel, stats.LeavesPerLevel
 }
 
-func (node *OctreeNode) constructHelper(currentDepth int, stats *ConstructStats) int {
+func (node *OctreeNode) constructHelper(currentDepth int, stats *ConstructStats, maxDepth int, minEdge float64) int {
 	for len(stats.NodesPerLevel) <= currentDepth {
 		stats.NodesPerLevel = append(stats.NodesPerLevel, 0)
 	}
@@ -38,7 +46,7 @@ func (node *OctreeNode) constructHelper(currentDepth int, stats *ConstructStats)
 		return currentDepth
 	}
 
-	if currentDepth >= MAX_DEPTH || node.Boundary.GetEdgeLength() <= MIN_EDGE {
+	if (maxDepth >= 0 && currentDepth >= maxDepth) || node.Boundary.GetEdgeLength() <= minEdge {
 		node.Children = nil
 		stats.LeavesPerLevel[currentDepth]++
 		return currentDepth
@@ -46,7 +54,7 @@ func (node *OctreeNode) constructHelper(currentDepth int, stats *ConstructStats)
 
 	node.Children = nil
 	dividedCube := node.Boundary.DivideCube()
-	maxDepth := currentDepth
+	maxDepthReached := currentDepth
 
 	for _, childCube := range dividedCube {
 		childNode := OctreeNode{Boundary: childCube}
@@ -70,9 +78,9 @@ func (node *OctreeNode) constructHelper(currentDepth int, stats *ConstructStats)
 			continue
 		}
 
-		childDepth := childNode.constructHelper(currentDepth+1, stats)
-		if childDepth > maxDepth {
-			maxDepth = childDepth
+		childDepth := childNode.constructHelper(currentDepth+1, stats, maxDepth, minEdge)
+		if childDepth > maxDepthReached {
+			maxDepthReached = childDepth
 		}
 		node.Children = append(node.Children, childNode)
 	}
@@ -81,5 +89,5 @@ func (node *OctreeNode) constructHelper(currentDepth int, stats *ConstructStats)
 		stats.LeavesPerLevel[currentDepth]++
 	}
 
-	return maxDepth
+	return maxDepthReached
 }
