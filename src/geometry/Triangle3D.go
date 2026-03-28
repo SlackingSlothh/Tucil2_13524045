@@ -7,19 +7,19 @@ import (
 )
 
 type Triangle3D struct {
-	v1, v2, v3 r3.Vector
+	V1, V2, V3 r3.Vector
 }
 
 func (tri Triangle3D) projectTriangle(axis r3.Vector) (float64, float64) {
-	min := axis.Dot(tri.v1)
+	min := axis.Dot(tri.V1)
 	max := min
-	projection := axis.Dot(tri.v2)
+	projection := axis.Dot(tri.V2)
 	if projection < min {
 		min = projection
 	} else if projection > max {
 		max = projection
 	}
-	projection = axis.Dot(tri.v3)
+	projection = axis.Dot(tri.V3)
 	if projection < min {
 		min = projection
 	} else if projection > max {
@@ -39,18 +39,18 @@ func (tri Triangle3D) isOverlapAxis(axis r3.Vector, extents r3.Vector) bool {
 }
 
 func (tri Triangle3D) IsIntersecting(cube Cube) bool {
-	center := r3.Vector{X: (cube.v0.X + cube.v1.X) * 0.5, Y: (cube.v0.Y + cube.v1.Y) * 0.5, Z: (cube.v0.Z + cube.v1.Z) * 0.5}
-	extents := r3.Vector{X: (cube.v1.X-cube.v0.X)*0.5, Y: (cube.v1.Y-cube.v0.Y)*0.5, Z: (cube.v1.Z-cube.v0.Z)*0.5}.Abs()
+	center := r3.Vector{X: (cube.V0.X + cube.V1.X) * 0.5, Y: (cube.V0.Y + cube.V1.Y) * 0.5, Z: (cube.V0.Z + cube.V1.Z) * 0.5}
+	extents := r3.Vector{X: (cube.V1.X-cube.V0.X)*0.5, Y: (cube.V1.Y-cube.V0.Y)*0.5, Z: (cube.V1.Z-cube.V0.Z)*0.5}.Abs()
 
-	v0 := r3.Vector{X: tri.v1.X - center.X, Y: tri.v1.Y - center.Y, Z: tri.v1.Z - center.Z}
-	v1 := r3.Vector{X: tri.v2.X - center.X, Y: tri.v2.Y - center.Y, Z: tri.v2.Z - center.Z}
-	v2 := r3.Vector{X: tri.v3.X - center.X, Y: tri.v3.Y - center.Y, Z: tri.v3.Z - center.Z}
-	translatedTri := Triangle3D{v0, v1, v2}
+	V0 := r3.Vector{X: tri.V1.X - center.X, Y: tri.V1.Y - center.Y, Z: tri.V1.Z - center.Z}
+	V1 := r3.Vector{X: tri.V2.X - center.X, Y: tri.V2.Y - center.Y, Z: tri.V2.Z - center.Z}
+	V2 := r3.Vector{X: tri.V3.X - center.X, Y: tri.V3.Y - center.Y, Z: tri.V3.Z - center.Z}
+	translatedTri := Triangle3D{V0, V1, V2}
 
-	minX, maxX := v0.X, v0.X
-	minY, maxY := v0.Y, v0.Y
-	minZ, maxZ := v0.Z, v0.Z
-	for _, v := range []r3.Vector{v1, v2} {
+	minX, maxX := V0.X, V0.X
+	minY, maxY := V0.Y, V0.Y
+	minZ, maxZ := V0.Z, V0.Z
+	for _, v := range []r3.Vector{V1, V2} {
 		if v.X < minX { minX = v.X }
 		if v.X > maxX { maxX = v.X }
 		if v.Y < minY { minY = v.Y }
@@ -68,9 +68,9 @@ func (tri Triangle3D) IsIntersecting(cube Cube) bool {
 		return false
 	}
 
-	e0 := r3.Vector{X: v1.X - v0.X, Y: v1.Y - v0.Y, Z: v1.Z - v0.Z}
-	e1 := r3.Vector{X: v2.X - v1.X, Y: v2.Y - v1.Y, Z: v2.Z - v1.Z}
-	e2 := r3.Vector{X: v0.X - v2.X, Y: v0.Y - v2.Y, Z: v0.Z - v2.Z}
+	e0 := r3.Vector{X: V1.X - V0.X, Y: V1.Y - V0.Y, Z: V1.Z - V0.Z}
+	e1 := r3.Vector{X: V2.X - V1.X, Y: V2.Y - V1.Y, Z: V2.Z - V1.Z}
+	e2 := r3.Vector{X: V0.X - V2.X, Y: V0.Y - V2.Y, Z: V0.Z - V2.Z}
 	axes := []r3.Vector{
 		{X: 0, Y: -e0.Z, Z: e0.Y}, {X: e0.Z, Y: 0, Z: -e0.X}, {X: -e0.Y, Y: e0.X, Z: 0},
 		{X: 0, Y: -e1.Z, Z: e1.Y}, {X: e1.Z, Y: 0, Z: -e1.X}, {X: -e1.Y, Y: e1.X, Z: 0},
